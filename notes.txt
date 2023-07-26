@@ -1,0 +1,5 @@
+1 objetivo
+- fazer as controllers bombarem, GO
+        - create user ok
+        - session ok
+        -
