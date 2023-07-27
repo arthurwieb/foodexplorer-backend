@@ -1,17 +1,17 @@
-const knex = require("../database/knex");
-const AppError = require("../utils/AppError");
-const DiskStorage = require("../providers/DiskStorage");
-class UserAvatarController {
+const knex = require("../../database/knex");
+const AppError = require("../../utils/AppError");
+const DiskStorage = require("../../providers/DiskStorage");
+class MealImageController {
   async update(request, response) {
     const user_id = request.user.id;
     const avatarFileName = request.file.filename;
 
     const diskStorage = new DiskStorage();
 
-    const user = await knex("users").where({ id: user_id }).first();
+    const user = await knex("meals").where({ id: user_id }).first();
 
     if (!user) {
-      new AppError("User not found", 404);
+      new AppError("meal not found", 404);
     }
 
     if (user.avatar) {
@@ -27,4 +27,4 @@ class UserAvatarController {
   }
 }
 
-module.exports = UserAvatarController;
+module.exports = MealImageController;

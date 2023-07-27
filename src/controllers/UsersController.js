@@ -1,11 +1,36 @@
 // const { hash, compare } = require("bcryptjs");
+const knex = require("../database/knex");
 const { hash } = require("bcryptjs");
 const AppError = require("../utils/AppError");
 const sqliteConnection = require("../database/sqlite");
 
 class UsersController {
   async create(request, response) {
-    const { name, email, password } = request.body;
+    const { name, email, password, admin = false } = request.body;
+    const checkUserExists = await knex("users").where("email", email).first();
+
+    if (checkUserExists) {
+      throw new AppError("User already exists");
+    }
+
+    if (!name || !email || !password) {
+      throw new AppError("All fields are required");
+    }
+
+    const hashedPassword = await hash(password, 8);
+
+    await knex("users").insert({
+      name,
+      email,
+      password: hashedPassword,
+      admin,
+    });
+
+    return response.status(201).json();
+  }
+
+  /*async create(request, response) {
+    const { name, email, password, admin } = request.body;
 
     const database = await sqliteConnection();
     const checkUserExists = await database.get(
@@ -29,7 +54,7 @@ class UsersController {
     );
 
     return response.status(201).json();
-  }
+  }*/
 
   // async update(request, response) {
   //   const { name, email, password, old_password } = request.body;
