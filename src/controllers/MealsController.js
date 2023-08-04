@@ -3,10 +3,11 @@ const DiskStorage = require("../providers/DiskStorage");
 
 class MealsController {
   async create(request, response) {
-    const { title, description, category_id, price, ingredients } =
-      request.body;
+    const mealData = JSON.parse(request.body.meal);
+    console.log(mealData);
+    const { title, description, category_id, price, ingredients } = mealData;
     const user_id = request.user.id;
-
+    console.log(category_id);
     let meal_id;
     let filename;
 
@@ -16,7 +17,6 @@ class MealsController {
       filename = await diskStorage.saveFile(mealImageName);
     }
 
-    console.log(filename);
     [meal_id] = await knex("meals").insert({
       title,
       description,
@@ -43,6 +43,7 @@ class MealsController {
     const { id } = request.params;
 
     const meal = await knex("meals").where({ id }).first();
+    console.log("meal", meal);
     const ingredients = await knex("ingredients")
       .where({ meal_id: id })
       .orderBy("name");
@@ -62,32 +63,35 @@ class MealsController {
   }
 
   async index(request, response) {
-    const { title, ingredients } = request.query;
+    const { search, category_id } = request.query;
     const user_id = request.user.id;
 
     let meals;
 
-    if (ingredients) {
-      const filterIngredients = ingredients
-        .split(",")
-        .map((ingredient) => ingredient);
+    meals = await knex("meals")
+      .distinct("meals.*")
+      .join("ingredients", "ingredients.meal_id", "meals.id")
+      .where("meals.category_id", category_id)
+      .andWhere(function () {
+        this.where("ingredients.name", "like", `%${search}%`).orWhere(
+          "meals.title",
+          "like",
+          `%${search}%`
+        );
+      });
+    const mealsByCategory = {};
 
-      meals = await knex("ingredients")
-        .select(["meals.id", "meals.title", "meals.user_id"])
-        .where("meals.user_id", user_id)
-        .whereLike("meals.title", `%${title}%`)
-        .whereIn("name", filterIngredients)
-        .innerJoin("meals", "meals.id", "ingredients.meal_id")
-        .groupBy("meals.id")
-        .orderBy("meals.title");
-    } else {
-      meals = await knex("meals")
-        .where({ user_id })
-        .whereLike("title", `%${title}%`)
-        .orderBy("title");
-    }
+    meals.forEach((meal) => {
+      const { category_id, ...rest } = meal;
 
-    const userIngredients = await knex("ingredients").where({ user_id });
+      if (!mealsByCategory[category_id]) {
+        mealsByCategory[category_id] = [];
+      }
+
+      mealsByCategory[category_id].push(rest);
+    });
+
+    const userIngredients = await knex("ingredients");
     const mealsWithIngredients = meals.map((meal) => {
       const mealIngredients = userIngredients.filter(
         (ingredients) => ingredients.meal_id === meal.id
@@ -100,6 +104,38 @@ class MealsController {
     });
 
     return response.json(mealsWithIngredients);
+  }
+
+  async update(request, response) {
+    /*
+    const mealData = JSON.parse(request.body.meal);
+    console.log(mealData);
+    const { title, description, category_id, price, ingredients } = mealData;
+    const user_id = request.user.id;
+    console.log(category_id);
+    let meal_id;
+    let filename;
+    const user_id = request.user.id;
+    const avatarFileName = request.file.filename;
+
+    const diskStorage = new DiskStorage();
+
+    const user = await knex("users").where({ id: user_id }).first();
+
+    if (!user) {
+      new AppError("User not found", 404);
+    }
+
+    if (user.avatar) {
+      await diskStorage.deleteFile(user.avatar);
+    }
+
+    const filename = await diskStorage.saveFile(avatarFileName);
+    user.avatar = filename;
+
+    await knex("users").update(user).where({ id: user_id });
+
+    return response.json(user);*/
   }
 }
 
