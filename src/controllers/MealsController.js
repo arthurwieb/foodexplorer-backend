@@ -1,3 +1,4 @@
+const { json } = require("express");
 const knex = require("../database/knex");
 const DiskStorage = require("../providers/DiskStorage");
 
@@ -62,7 +63,7 @@ class MealsController {
     return response.json();
   }
 
-  async index(request, response) {
+  async index(request, response) { //change to showMealByCategory
     const { search, category_id } = request.query;
     const user_id = request.user.id;
 
@@ -107,35 +108,33 @@ class MealsController {
   }
 
   async update(request, response) {
-    /*
-    const mealData = JSON.parse(request.body.meal);
-    console.log(mealData);
-    const { title, description, category_id, price, ingredients } = mealData;
+
+    const {title, image, description, price, ingredients, category_id} = request.body;
+    const meal_id = request.params.id;
     const user_id = request.user.id;
-    console.log(category_id);
-    let meal_id;
-    let filename;
-    const user_id = request.user.id;
-    const avatarFileName = request.file.filename;
 
-    const diskStorage = new DiskStorage();
+    const ingredientsInsert = ingredients.map((name) => {
+      return {
+        meal_id,
+        name,
+        user_id,
+      };
+    });
 
-    const user = await knex("users").where({ id: user_id }).first();
-
-    if (!user) {
-      new AppError("User not found", 404);
+    for (const ingredient of ingredientsInsert) {
+      await knex('ingredients')
+        .whereNotExists(function () {
+          this.select('*')
+            .from('ingredients')
+            .where('name', ingredient.name)
+            .andWhere('meal_id', meal_id);
+        })
+        .insert(ingredient);
     }
 
-    if (user.avatar) {
-      await diskStorage.deleteFile(user.avatar);
-    }
+    await knex('meals').where('id', meal_id).update({title, image, description, price, category_id});
 
-    const filename = await diskStorage.saveFile(avatarFileName);
-    user.avatar = filename;
-
-    await knex("users").update(user).where({ id: user_id });
-
-    return response.json(user);*/
+    return response.json()
   }
 }
 
