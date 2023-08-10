@@ -8,5 +8,6 @@ const ingredientsController = new IngredientsController();
 ingredientsRoutes.use(ensureAuthenticated); //.use means all routes are going to be authenticated
 
 ingredientsRoutes.get("/", ingredientsController.index);
+ingredientsRoutes.delete("/:id", ingredientsController.delete);
 
 module.exports = ingredientsRoutes;

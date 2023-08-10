@@ -9,6 +9,12 @@ class IngredientsController {
       .groupBy("name");
     return response.json(ingredients);
   }
+
+  async delete(request, response) {
+    const { id } = request.params;
+    const deletedIngredient = await knex("ingredients").where({ id }).delete();
+    return response.json(deletedIngredient);
+  }
 }
 
 module.exports = IngredientsController;

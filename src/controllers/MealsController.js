@@ -5,10 +5,8 @@ const DiskStorage = require("../providers/DiskStorage");
 class MealsController {
   async create(request, response) {
     const mealData = JSON.parse(request.body.meal);
-    console.log(mealData);
     const { title, description, category_id, price, ingredients } = mealData;
     const user_id = request.user.id;
-    console.log(category_id);
     let meal_id;
     let filename;
 
@@ -44,7 +42,6 @@ class MealsController {
     const { id } = request.params;
 
     const meal = await knex("meals").where({ id }).first();
-    console.log("meal", meal);
     const ingredients = await knex("ingredients")
       .where({ meal_id: id })
       .orderBy("name");
@@ -63,7 +60,8 @@ class MealsController {
     return response.json();
   }
 
-  async index(request, response) { //change to showMealByCategory
+  async index(request, response) {
+    //change to showMealByCategory
     const { search, category_id } = request.query;
     const user_id = request.user.id;
 
@@ -108,10 +106,20 @@ class MealsController {
   }
 
   async update(request, response) {
-
-    const {title, image, description, price, ingredients, category_id} = request.body;
+    const meal = JSON.parse(request.body.meal);
+    const { title, description, price, ingredients, category_id } = meal;
     const meal_id = request.params.id;
     const user_id = request.user.id;
+
+    let filename;
+
+    if (request.file) {
+      const mealImageName = request.file.filename;
+      const diskStorage = new DiskStorage();
+      filename = await diskStorage.saveFile(mealImageName);
+    }
+
+    await knex("ingredients").where("meal_id", meal_id).del();
 
     const ingredientsInsert = ingredients.map((name) => {
       return {
@@ -121,20 +129,13 @@ class MealsController {
       };
     });
 
-    for (const ingredient of ingredientsInsert) {
-      await knex('ingredients')
-        .whereNotExists(function () {
-          this.select('*')
-            .from('ingredients')
-            .where('name', ingredient.name)
-            .andWhere('meal_id', meal_id);
-        })
-        .insert(ingredient);
-    }
+    await knex("ingredients").insert(ingredientsInsert);
 
-    await knex('meals').where('id', meal_id).update({title, image, description, price, category_id});
+    await knex("meals")
+      .where("id", meal_id)
+      .update({ title, image: filename, description, price, category_id });
 
-    return response.json()
+    return response.json();
   }
 }
 
