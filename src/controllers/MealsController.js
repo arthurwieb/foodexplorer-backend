@@ -78,17 +78,6 @@ class MealsController {
           `%${search}%`
         );
       });
-    const mealsByCategory = {};
-
-    meals.forEach((meal) => {
-      const { category_id, ...rest } = meal;
-
-      if (!mealsByCategory[category_id]) {
-        mealsByCategory[category_id] = [];
-      }
-
-      mealsByCategory[category_id].push(rest);
-    });
 
     const userIngredients = await knex("ingredients");
     const mealsWithIngredients = meals.map((meal) => {
